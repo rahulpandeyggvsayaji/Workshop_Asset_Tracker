@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Workshop Asset Tracking — Single‑file App</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#111827;
+      --muted:#1f2937;
+      --card:#0b1224;
+      --border:#334155;
+      --text:#e5e7eb;
+      --sub:#cbd5e1;
+      --accent:#22c55e;
+      --accent-2:#60a5fa;
+      --warn:#f59e0b;
+      --danger:#ef4444;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial;
+      background:linear-gradient(180deg,#0b1224, #0f172a 120%);
+      color:var(--text);
+    }
+    a{color:var(--accent-2); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    header{
+      position:sticky; top:0; z-index:5;
+      display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+      padding:14px 18px; border-bottom:1px solid var(--border);
+      background:rgba(15,23,42,.85); backdrop-filter:saturate(140%) blur(8px);
+    }
+    header .brand{display:flex; align-items:center; gap:12px}
+    .logo img{height:30px; display:block}
+    .title{font-size:18px; font-weight:700}
+    .spacer{flex:1}
+    .top-actions{display:flex; gap:8px; flex-wrap:wrap}
+    .btn{border:1px solid var(--border); background:var(--panel); color:var(--text); padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:var(--shadow); font-weight:600}
+    .btn:hover{border-color:#64748b; transform:translateY(-1px)}
+    .btn.primary{background:linear-gradient(180deg,#16a34a,#059669); border-color:#16a34a}
+    .btn.ghost{background:transparent}
+    .btn.warn{background:#1f2937; border-color:var(--warn); color:#fde68a}
+    .btn.danger{background:#1f2937; border-color:var(--danger); color:#fecaca}
+
+    main{max-width:1200px; margin:0 auto; padding:22px 16px 80px}
+
+    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 18px}
+    .tab{padding:8px 12px; border:1px solid var(--border); border-radius:10px; background:var(--panel); cursor:pointer; font-weight:600; color:#fff} /* white text */
+    .tab.active{outline:2px solid var(--accent-2);}
+
+    .panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .panel.pad{padding:14px}
+    .panel h3{margin:0 0 10px; font-size:16px}
+    .grid{display:grid; gap:14px}
+    .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    @media (max-width:1000px){
+      .grid.cols-4{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width:640px){
+      .grid.cols-4,.grid.cols-3{grid-template-columns:1fr}
+    }
+
+    .scoreboard{display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:10px}
+    .score{background:var(--card); border:1px dashed #475569; border-radius:12px; padding:10px; text-align:center}
+    .score .name{font-size:12px; color:#9ca3af}
+    .score .val{font-size:20px; font-weight:800; margin-top:6px}
+
+    .kanban{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+    .col{min-height:420px; display:flex; flex-direction:column}
+    .col .col-head{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,#0b1224,#0e1630)}
+    .col .cards{flex:1; padding:8px; display:grid; gap:10px}
+    .dropzone{min-height:140px; border:2px dashed transparent; border-radius:12px; transition:.15s}
+    .dropzone.dragover{border-color:var(--accent-2); background:rgba(96,165,250,.08)}
+
+    .card{background:linear-gradient(180deg,#0b1224,#0f1b3d); border:1px solid #233254; border-radius:12px; padding:10px; cursor:grab}
+    .card:hover{border-color:#3b82f6}
+    .card .row{display:flex; justify-content:space-between; gap:8px}
+    .badge{padding:2px 8px; border:1px solid #334155; border-radius:999px; font-size:11px; color:#cbd5e1}
+    .small{font-size:12px; color:#cbd5e1}
+    .muted{color:#94a3b8}
+    .tools{display:flex; gap:6px}
+    .icon-btn{border:1px solid #334155; background:#0b1224; color:#cbd5e1; border-radius:8px; padding:4px 6px; cursor:pointer}
+    .icon-btn:hover{border-color:#64748b}
+
+    table{width:100%; border-collapse:separate; border-spacing:0;}
+    th,td{padding:10px 8px; border-bottom:1px solid #28354f}
+    th{text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.02em; color:#a5b4fc}
+
+    .form{display:grid; gap:10px}
+    .row-2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .row-3{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+    label{font-size:12px; color:#93c5fd}
+    input,select,textarea{width:100%; padding:10px; border-radius:10px; border:1px solid #334155; background:#0b1224; color:#e5e7eb}
+    textarea{min-height:80px}
+    .help{font-size:12px; color:#9ca3af}
+
+    .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,6,23,.7); z-index:40}
+    .modal.open{display:flex}
+    .modal .box{width:min(860px,92vw); max-height:88vh; overflow:auto; background:var(--panel); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px}
+    .modal .header{display:flex; align-items:center; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border)}
+
+    .notice{font-size:12px; color:#fef08a}
+    .pill{padding:4px 8px; border-radius:999px; border:1px solid #64748b}
+
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo"><img src="data:image/png;base64,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" alt="Sayaji" /></div>
+      <div class="title">Workshop Asset Tracking</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="top-actions">
+      <button class="btn ghost" id="btnBackup">Backup ▾</button>
+      <button class="btn primary" id="btnNewReceive">+ Receive Asset</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs" id="tabs">
+      <button data-view="board" class="tab active">Board</button>
+      <button data-view="history" class="tab">Asset History (by Tag)</button>
+      <button data-view="assets" class="tab">Asset Repository</button>
+      <button data-view="spares" class="tab">Spare Part Repository</button>
+      <button data-view="plants" class="tab">Plant & Location Repository</button>
+      <button data-view="people" class="tab">Personnel Repository</button>
+      <button data-view="issued" class="tab">All Issued</button>
+    </div>
+
+    <section id="view-board">
+      <div class="grid cols-2">
+        <div class="panel pad">
+          <h3>Workshop assets in use (Issued count by Plant)</h3>
+          <div id="scoreboard" class="scoreboard"></div>
+        </div>
+        <div class="panel pad">
+          <h3>Quick Notes</h3>
+          <div class="help">• Drag cards between columns to advance status.<br>• When moving to <b>Ready</b>, date is auto-set. When moving to <b>Issued</b>, select plant/location & issued by.<br>• Issued column shows the latest 5; use <b>All Issued</b> tab for full list.</div>
+        </div>
+      </div>
+
+      <div class="kanban" id="kanban">
+        <div class="panel col" data-status="received">
+          <div class="col-head"><div><b>Asset Receive by workshop</b></div><div><button class="btn" id="colAddReceive">Add new</button></div></div>
+          <div class="cards dropzone" id="zone-received"></div>
+        </div>
+        <div class="panel col" data-status="repair">
+          <div class="col-head"><b>Asset Under Repair</b></div>
+          <div class="cards dropzone" id="zone-repair"></div>
+        </div>
+        <div class="panel col" data-status="ready">
+          <div class="col-head"><b>Asset Ready</b></div>
+          <div class="cards dropzone" id="zone-ready"></div>
+        </div>
+        <div class="panel col" data-status="issued">
+          <div class="col-head"><b>Asset Issued</b></div>
+          <div class="cards dropzone" id="zone-issued"></div>
+          <div style="padding:8px 12px; border-top:1px solid var(--border)"><button class="btn ghost" id="seeAllIssued">See all the issued →</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-history" class="hidden">
+      <div class="panel pad">
+        <div class="row-3">
+          <div>
+            <label>Tag number</label>
+            <input id="histTag" placeholder="Enter tag number to search" list="assetTagList" />
+          </div>
+          <div style="align-self:end"><button class="btn" id="btnShowHistory">Show History</button></div>
+          <div style="align-self:end"><span class="help">Tip: choose from tag suggestions (comes from Asset Repository).</span></div>
+        </div>
+      </div>
+      <div class="panel pad" id="historyResult">
+        <h3>History</h3>
+        <div class="help">No tag selected.</div>
+      </div>
+    </section>
+
+    <!-- Asset repository now includes current plant & location -->
+    <section id="view-assets" class="hidden">
+      <div class="panel pad">
+        <h3>Asset Repository</h3>
+        <div class="help">Maintain master list of assets. When receiving by tag, category & model auto-fill from here. Also capture current plant & location.</div>
+        <div class="row-3" style="margin-top:10px">
+          <input id="aTag" placeholder="Tag number" />
+          <input id="aCat" placeholder="Asset category" />
+          <input id="aModel" placeholder="Asset model" />
+        </div>
+        <div class="row-2" style="margin-top:10px">
+          <input id="aPlant" placeholder="Current plant" list="plantList" />
+          <input id="aLocation" placeholder="Current location" list="locationList" />
+        </div>
+        <div style="margin-top:8px"><button class="btn" id="addAssetMaster">Add to Repository</button></div>
+      </div>
+      <div class="panel pad">
+        <table id="tblAssets"><thead><tr><th>Tag</th><th>Category</th><th>Model</th><th>Plant</th><th>Location</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="view-spares" class="hidden">
+      <div class="panel pad">
+        <h3>Spare Part Repository</h3>
+        <div class="row-3" style="margin-top:10px">
+          <input id="sName" placeholder="Spare part name" />
+          <input id="sUnit" placeholder="Unit (e.g., pcs, set)" />
+          <div><button class="btn" id="addSpare">Add Spare</button></div>
+        </div>
+      </div>
+      <div class="panel pad">
+        <table id="tblSpares"><thead><tr><th>Name</th><th>Unit</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="view-plants" class="hidden">
+      <div class="panel pad">
+        <h3>Plant & Plant location Repository</h3>
+        <div class="row-3" style="margin-top:10px">
+          <input id="pPlant" placeholder="Plant name (e.g., Starch Plant)" />
+          <input id="pLoc" placeholder="Location name (e.g., Mill Area)" />
+          <div><button class="btn" id="addPlantLoc">Add</button></div>
+        </div>
+      </div>
+      <div class="panel pad">
+        <table id="tblPlantLoc"><thead><tr><th>Plant</th><th>Location</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="view-people" class="hidden">
+      <div class="panel pad">
+        <h3>Personnel Repository</h3>
+        <div class="row-3" style="margin-top:10px">
+          <input id="uName" placeholder="Full name" />
+          <input id="uRole" placeholder="Role (optional)" />
+          <input id="uPlant" placeholder="Plant (optional)" list="plantList" />
+        </div>
+        <div style="margin-top:8px"><button class="btn" id="addUser">Add Person</button></div>
+      </div>
+      <div class="panel pad">
+        <table id="tblUsers"><thead><tr><th>Name</th><th>Role</th><th>Plant</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="view-issued" class="hidden">
+      <div class="panel pad">
+        <h3>All Issued Assets</h3>
+        <table id="tblIssued"><thead><tr><th>Issued Date</th><th>Tag</th><th>Category</th><th>Model</th><th>Issued Plant</th><th>Location</th><th>Issued By</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <datalist id="assetTagList"></datalist>
+    <datalist id="assetCatList"></datalist>
+    <datalist id="modelList"></datalist>
+    <datalist id="plantList"></datalist>
+    <datalist id="locationList"></datalist>
+    <datalist id="peopleList"></datalist>
+    <datalist id="spareList"></datalist>
+
+  </main>
+
+  <!-- Modals (receive/repair/issue/detail/backup) unchanged except logic hooks -->
+  <div class="modal" id="modal-receive">
+    <div class="box">
+      <div class="header"><b>Asset Receive by Workshop</b><button class="icon-btn" data-close="modal-receive">✕</button></div>
+      <div class="form" style="margin-top:12px">
+        <div class="row-3">
+          <div>
+            <label>Asset Tag no.</label>
+            <input id="rTag" placeholder="Enter/scan tag no" list="assetTagList">
+          </div>
+          <div>
+            <label>Asset category</label>
+            <input id="rCat" placeholder="Auto from repository or type" list="assetCatList">
+          </div>
+          <div>
+            <label>Asset model</label>
+            <input id="rModel" placeholder="Auto from repository or type" list="modelList">
+          </div>
+        </div>
+        <div class="row-3">
+          <div>
+            <label>Receiving plant</label>
+            <input id="rPlant" placeholder="Select plant" list="plantList">
+          </div>
+          <div>
+            <label>Receiving plant location</label>
+            <input id="rLocation" placeholder="Select location" list="locationList">
+          </div>
+          <div>
+            <label>Received by</label>
+            <input id="rBy" placeholder="Select person" list="peopleList">
+          </div>
+        </div>
+        <div class="row-3">
+          <div>
+            <label>Received date</label>
+            <input id="rDate" type="datetime-local">
+          </div>
+          <div style="align-self:end"><button class="btn" id="btnLookupByTag">Lookup by Tag</button></div>
+          <div style="align-self:end" class="help">If tag exists in Asset Repository, category, model, and base plant/location will auto-fill.</div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:4px">
+          <button class="btn primary" id="saveReceive">Save</button>
+          <button class="btn ghost" data-close="modal-receive">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-repair">
+    <div class="box">
+      <div class="header"><div><b>Move to: Asset Under Repair</b> <span class="pill" id="rpTag"></span></div><button class="icon-btn" data-close="modal-repair">✕</button></div>
+      <div class="form" style="margin-top:12px">
+        <div class="row-2">
+          <div>
+            <label>Issue observed</label>
+            <textarea id="rpIssue" placeholder="Describe the issue..."></textarea>
+          </div>
+          <div>
+            <label>Action taken</label>
+            <textarea id="rpAction" placeholder="Describe action taken..."></textarea>
+          </div>
+        </div>
+        <div>
+          <label>Spare Part used</label>
+          <div id="sparesWrap"></div>
+          <button class="btn ghost" id="addSpareLine">+ Add spare line</button>
+          <div class="help">Choose a spare and quantity. Lines are optional.</div>
+        </div>
+        <div class="row-3">
+          <div>
+            <label>Repaired by</label>
+            <input id="rpBy" placeholder="Select person" list="peopleList">
+          </div>
+          <div style="align-self:end"><button class="btn primary" id="saveRepair">Save</button></div>
+          <div style="align-self:end"><button class="btn ghost" data-close="modal-repair">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-issue">
+    <div class="box">
+      <div class="header"><div><b>Move to: Asset Issued</b> <span class="pill" id="isTag"></span></div><button class="icon-btn" data-close="modal-issue">✕</button></div>
+      <div class="form" style="margin-top:12px">
+        <div class="row-3">
+          <div>
+            <label>Issued plant</label>
+            <input id="isPlant" placeholder="Select plant" list="plantList">
+          </div>
+          <div>
+            <label>Issued plant location</label>
+            <input id="isLocation" placeholder="Select location" list="locationList">
+          </div>
+          <div>
+            <label>Issued by</label>
+            <input id="isBy" placeholder="Select person" list="peopleList">
+          </div>
+        </div>
+        <div class="row-3">
+          <div>
+            <label>Issued date</label>
+            <input id="isDate" type="datetime-local">
+          </div>
+          <div style="align-self:end"><button class="btn primary" id="saveIssue">Save</button></div>
+          <div style="align-self:end"><button class="btn ghost" data-close="modal-issue">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-detail">
+    <div class="box">
+      <div class="header"><div><b>Asset Details</b> <span class="pill" id="dtlTag"></span></div><button class="icon-btn" data-close="modal-detail">✕</button></div>
+      <div id="detailBody" style="padding-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-backup">
+    <div class="box">
+      <div class="header"><b>Backup & Utilities</b><button class="icon-btn" data-close="modal-backup">✕</button></div>
+      <div class="form" style="margin-top:12px">
+        <div class="row-3">
+          <button class="btn" id="btnExport">Download Backup (.json)</button>
+          <label class="btn" style="display:inline-grid; place-items:center; cursor:pointer">Import Backup<input id="importFile" type="file" accept="application/json" style="display:none"></label>
+          <button class="btn warn" id="btnSeed">Load Sample Masters</button>
+        </div>
+        <div><button class="btn danger" id="btnReset">Reset everything</button> <span class="help">This clears all data irreversibly.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = sel=>document.querySelector(sel);
+    const $$ = sel=>document.querySelectorAll(sel);
+    const todayLocalDT = ()=>{ const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); };
+    const fmtDate = s=> s? new Date(s).toLocaleString():'';
+
+    const KEY='wshop_data_v2'; // bumped version after schema changes
+    const emptyDB = ()=>({
+      repositories:{
+        assets:[],          // {tag, category, model, plant, location}
+        spares:[],          // {name, unit}
+        plants:[],          // {name}
+        locations:[],       // {plant, location}
+        people:[]
+      },
+      items:[]
+    });
+  </script>
+  <script>
+    function loadDB(){ try{ return JSON.parse(localStorage.getItem(KEY)) || emptyDB(); } catch(e){ return emptyDB(); } }
+    function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
+    let DB = loadDB();
+
+    function showView(name){
+      $$('#tabs .tab').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
+      ['board','history','assets','spares','plants','people','issued'].forEach(v=>{
+        $('#view-'+v).classList.toggle('hidden', v!==name);
+      });
+      if(name==='board') renderBoard();
+      if(name==='assets') renderAssets();
+      if(name==='spares') renderSpares();
+      if(name==='plants') renderPlantLoc();
+      if(name==='people') renderPeople();
+      if(name==='issued') renderIssuedTable();
+    }
+    $('#tabs').addEventListener('click', e=>{ if(e.target.classList.contains('tab')) showView(e.target.dataset.view); });
+
+    function refreshDatalists(){
+      const set=(id,arr,map=(x=>x))=>{ const dl=$(id); dl.innerHTML=''; [...new Set(arr.map(map))].filter(Boolean).sort().forEach(v=>{ const o=document.createElement('option'); o.value=v; dl.appendChild(o); }); };
+      set('#assetTagList', DB.repositories.assets, a=>a.tag);
+      set('#assetCatList', DB.repositories.assets, a=>a.category);
+      set('#modelList', DB.repositories.assets, a=>a.model);
+      set('#plantList', DB.repositories.plants, p=>p.name);
+      set('#locationList', DB.repositories.locations, l=>`${l.plant} — ${l.location}`);
+      set('#peopleList', DB.repositories.people, p=>p.name);
+      set('#spareList', DB.repositories.spares, s=>s.name);
+    }
+
+    function renderBoard(){
+      // Start with repository placements
+      const counts = {};
+      DB.repositories.assets.forEach(a=>{ if(a.plant){ counts[a.plant]=(counts[a.plant]||0)+1; } });
+
+      // Adjust by movements
+      DB.items.forEach(x=>{
+        if(x.status==='issued'){
+          if(x.issued_plant){ counts[x.issued_plant]=(counts[x.issued_plant]||0)+1; }
+          if(x.receiving_plant){ counts[x.receiving_plant]=(counts[x.receiving_plant]||0)-1; }
+        }else{
+          if(x.receiving_plant){ counts[x.receiving_plant]=(counts[x.receiving_plant]||0)-1; }
+        }
+      });
+
+      const scoreboard=$('#scoreboard'); scoreboard.innerHTML='';
+      const plants = Object.keys(counts).length? Object.keys(counts): ['No data yet'];
+      plants.sort().forEach(p=>{
+        const div=document.createElement('div'); div.className='score';
+        div.innerHTML=`<div class="name">${p}</div><div class="val">${counts[p]||0}</div>`;
+        scoreboard.appendChild(div);
+      });
+
+      const zones={ received:$('#zone-received'), repair:$('#zone-repair'), ready:$('#zone-ready'), issued:$('#zone-issued') };
+      Object.values(zones).forEach(z=>z.innerHTML='');
+
+      const issued = DB.items.filter(x=>x.status==='issued').sort((a,b)=>new Date(b.issued_date)-new Date(a.issued_date)).slice(0,5);
+      const items = {
+        received: DB.items.filter(x=>x.status==='received'),
+        repair:   DB.items.filter(x=>x.status==='repair'),
+        ready:    DB.items.filter(x=>x.status==='ready'),
+        issued
+      };
+      for(const [status,list] of Object.entries(items)){ for(const it of list){ zones[status].appendChild(makeCard(it)); } }
+
+      makeDroppable('#zone-received','received');
+      makeDroppable('#zone-repair','repair');
+      makeDroppable('#zone-ready','ready');
+      makeDroppable('#zone-issued','issued');
+    }
+
+    function makeCard(it){
+      const el=document.createElement('div');
+      el.className='card'; el.draggable=true; el.dataset.id=it.id;
+      el.innerHTML=`
+        <div class="row">
+          <div><b>${it.tag||'—'}</b></div>
+          <div class="tools">
+            <button class="icon-btn" data-act="view">👁</button>
+            <button class="icon-btn" data-act="edit">✎</button>
+          </div>
+        </div>
+        <div class="small muted">${it.category||''} • ${it.model||''}</div>
+      `;
+      el.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', it.id); });
+      el.addEventListener('click', e=>{
+        if(e.target.dataset.act==='view') showDetail(it.id);
+        if(e.target.dataset.act==='edit') editItem(it.id);
+      });
+      return el;
+    }
+
+    function makeDroppable(sel,status){
+      const z=$(sel);
+      z.addEventListener('dragover', e=>{ e.preventDefault(); z.classList.add('dragover'); });
+      z.addEventListener('dragleave', ()=>z.classList.remove('dragover'));
+      z.addEventListener('drop', e=>{ e.preventDefault(); z.classList.remove('dragover'); const id=e.dataTransfer.getData('text/plain'); handleMove(id,status); });
+    }
+
+    let moveBuffer={id:null, target:null};
+    function handleMove(id,target){
+      const it = DB.items.find(x=>x.id===id); if(!it || it.status===target) return;
+      if(target==='repair'){ openRepairModal(it); }
+      else if(target==='ready'){ it.status='ready'; it.ready_date=new Date().toISOString(); saveDB(DB); renderBoard(); }
+      else if(target==='issued'){ openIssueModal(it); }
+      else if(target==='received'){ it.status='received'; saveDB(DB); renderBoard(); }
+    }
+
+    function openModal(id){ $('#'+id).classList.add('open'); }
+    function closeModal(id){ $('#'+id).classList.remove('open'); }
+    document.body.addEventListener('click', e=>{ const btn=e.target.closest('[data-close]'); if(btn){ closeModal(btn.dataset.close); } });
+
+    function openReceive(){
+      $('#rTag').value=''; $('#rCat').value=''; $('#rModel').value='';
+      $('#rPlant').value=''; $('#rLocation').value=''; $('#rBy').value='';
+      $('#rDate').value=todayLocalDT();
+      openModal('modal-receive');
+    }
+    $('#btnNewReceive').onclick=openReceive; $('#colAddReceive').onclick=openReceive;
+
+    $('#btnLookupByTag').onclick=()=>{
+      const tag=$('#rTag').value.trim(); if(!tag) return;
+      const a=DB.repositories.assets.find(x=>x.tag===tag);
+      if(a){
+        $('#rCat').value=a.category||''; $('#rModel').value=a.model||'';
+        if(!$('#rPlant').value && a.plant) $('#rPlant').value=a.plant;
+        if(!$('#rLocation').value && a.location) $('#rLocation').value=`${a.plant} — ${a.location}`;
+      }else alert('Tag not found in Asset Repository. You can still proceed.');
+    };
+    $('#saveReceive').onclick=()=>{
+      const tag=$('#rTag').value.trim(); if(!tag) return alert('Tag is required');
+      const it={
+        id:'i_'+Date.now()+Math.random().toString(36).slice(2),
+        status:'received',
+        tag, category:$('#rCat').value.trim(), model:$('#rModel').value.trim(),
+        receiving_plant:$('#rPlant').value.trim(), receiving_location:$('#rLocation').value.trim(),
+        received_by:$('#rBy').value.trim(), received_date:new Date($('#rDate').value||new Date()).toISOString(),
+        issue_observed:'', action_taken:'', spare_parts:[], repaired_by:'', ready_date:null,
+        issued_date:null, issued_plant:'', issued_location:'', issued_by:''
+      };
+      DB.items.push(it); saveDB(DB); closeModal('modal-receive'); renderBoard();
+    };
+
+    function spareLine(name='',qty=''){
+      const line=document.createElement('div'); line.className='row-3';
+      line.innerHTML=`<input placeholder="Spare name" list="spareList" value="${name}"><input type="number" step="any" placeholder="Qty" value="${qty}"><button class="btn ghost">Remove</button>`;
+      line.querySelector('button').onclick=()=>line.remove();
+      return line;
+    }
+    function openRepairModal(it){
+      moveBuffer={id:it.id, target:'repair'};
+      $('#rpTag').textContent=it.tag;
+      $('#rpIssue').value=it.issue_observed||'';
+      $('#rpAction').value=it.action_taken||'';
+      $('#rpBy').value=it.repaired_by||'';
+      const wrap=$('#sparesWrap'); wrap.innerHTML='';
+      (it.spare_parts||[]).forEach(sp=>wrap.appendChild(spareLine(sp.name, sp.qty)));
+      if(!wrap.children.length) wrap.appendChild(spareLine());
+      openModal('modal-repair');
+    }
+    $('#addSpareLine').onclick=()=> $('#sparesWrap').appendChild(spareLine());
+    $('#saveRepair').onclick=()=>{
+      const it = DB.items.find(x=>x.id===moveBuffer.id); if(!it) return;
+      it.issue_observed=$('#rpIssue').value.trim();
+      it.action_taken=$('#rpAction').value.trim();
+      it.repaired_by=$('#rpBy').value.trim();
+      const parts=[];
+      $$('#sparesWrap .row-3').forEach(r=>{
+        const name=r.querySelector('input:nth-child(1)').value.trim();
+        const qty=r.querySelector('input:nth-child(2)').value.trim();
+        if(name) parts.push({name, qty});
+      });
+      it.spare_parts=parts;
+      it.status='repair'; saveDB(DB); closeModal('modal-repair'); renderBoard();
+    };
+
+    function openIssueModal(it){
+      moveBuffer={id:it.id, target:'issued'};
+      $('#isTag').textContent=it.tag;
+      $('#isPlant').value=it.issued_plant||'';
+      $('#isLocation').value=it.issued_location||'';
+      $('#isBy').value=it.issued_by||'';
+      $('#isDate').value=todayLocalDT();
+      openModal('modal-issue');
+    }
+    $('#saveIssue').onclick=()=>{
+      const it=DB.items.find(x=>x.id===moveBuffer.id); if(!it) return;
+      it.issued_plant=$('#isPlant').value.trim();
+      it.issued_location=$('#isLocation').value.trim();
+      it.issued_by=$('#isBy').value.trim();
+      it.issued_date=new Date($('#isDate').value||new Date()).toISOString();
+      it.status='issued'; saveDB(DB); closeModal('modal-issue'); renderBoard();
+    };
+
+    function showDetail(id){
+      const it=DB.items.find(x=>x.id===id); if(!it) return;
+      $('#dtlTag').textContent=it.tag;
+      $('#detailBody').innerHTML=`
+        <div class="grid cols-2">
+          <div class="panel pad">
+            <h3>Master</h3>
+            <div class="help">Tag • Category • Model</div>
+            <div class="row-3" style="margin-top:8px">
+              <input id="edTag" value="${it.tag||''}" placeholder="Tag">
+              <input id="edCat" value="${it.category||''}" placeholder="Category" list="assetCatList">
+              <input id="edModel" value="${it.model||''}" placeholder="Model" list="modelList">
+            </div>
+          </div>
+          <div class="panel pad">
+            <h3>Receive</h3>
+            <div class="row-3" style="margin-top:8px">
+              <input id="edRPlant" value="${it.receiving_plant||''}" placeholder="Plant" list="plantList">
+              <input id="edRLoc" value="${it.receiving_location||''}" placeholder="Location" list="locationList">
+              <input id="edRBy" value="${it.received_by||''}" placeholder="Received by" list="peopleList">
+            </div>
+            <div style="margin-top:8px"><label>Date</label><input id="edRDate" type="datetime-local" value="${it.received_date? new Date(it.received_date).toISOString().slice(0,16):''}"></div>
+          </div>
+          <div class="panel pad">
+            <h3>Repair</h3>
+            <div class="row-2" style="margin-top:8px">
+              <textarea id="edIssue" placeholder="Issue">${it.issue_observed||''}</textarea>
+              <textarea id="edAction" placeholder="Action">${it.action_taken||''}</textarea>
+            </div>
+            <div style="margin-top:8px"><label>Repaired by</label><input id="edRpBy" value="${it.repaired_by||''}" list="peopleList"></div>
+          </div>
+          <div class="panel pad">
+            <h3>Issue</h3>
+            <div class="row-3" style="margin-top:8px">
+              <input id="edIPlant" value="${it.issued_plant||''}" placeholder="Plant" list="plantList">
+              <input id="edILoc" value="${it.issued_location||''}" placeholder="Location" list="locationList">
+              <input id="edIBy" value="${it.issued_by||''}" placeholder="Issued by" list="peopleList">
+            </div>
+            <div style="margin-top:8px"><label>Issued date</label><input id="edIDate" type="datetime-local" value="${it.issued_date? new Date(it.issued_date).toISOString().slice(0,16):''}"></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <button class="btn primary" id="btnSaveEdit">Save changes</button>
+          <button class="btn danger" id="btnDeleteItem">Delete</button>
+        </div>`;
+      $('#btnSaveEdit').onclick=()=>{
+        it.tag=$('#edTag').value.trim(); it.category=$('#edCat').value.trim(); it.model=$('#edModel').value.trim();
+        it.receiving_plant=$('#edRPlant').value.trim(); it.receiving_location=$('#edRLoc').value.trim(); it.received_by=$('#edRBy').value.trim();
+        const dR=$('#edRDate').value; it.received_date=dR? new Date(dR).toISOString():it.received_date;
+        it.issue_observed=$('#edIssue').value.trim(); it.action_taken=$('#edAction').value.trim(); it.repaired_by=$('#edRpBy').value.trim();
+        it.issued_plant=$('#edIPlant').value.trim(); it.issued_location=$('#edILoc').value.trim(); it.issued_by=$('#edIBy').value.trim();
+        const dI=$('#edIDate').value; it.issued_date=dI? new Date(dI).toISOString():it.issued_date;
+        saveDB(DB); renderBoard(); closeModal('modal-detail');
+      };
+      $('#btnDeleteItem').onclick=()=>{ if(confirm('Delete this item?')){ DB.items=DB.items.filter(x=>x.id!==it.id); saveDB(DB); renderBoard(); closeModal('modal-detail'); } };
+      openModal('modal-detail');
+    }
+    function editItem(id){ showDetail(id); }
+
+    function renderAssets(){
+      const tb=$('#tblAssets tbody'); tb.innerHTML='';
+      DB.repositories.assets.sort((a,b)=>(''+a.tag).localeCompare(b.tag)).forEach((a,i)=>{
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${a.tag}</td><td>${a.category||''}</td><td>${a.model||''}</td><td>${a.plant||''}</td><td>${a.location||''}</td><td><button class="icon-btn" data-i="${i}">🗑</button></td>`;
+        tr.querySelector('button').onclick=()=>{ DB.repositories.assets.splice(i,1); saveDB(DB); renderAssets(); refreshDatalists(); };
+        tb.appendChild(tr);
+      });
+      refreshDatalists();
+    }
+    $('#addAssetMaster').onclick=()=>{
+      const tag=$('#aTag').value.trim(); if(!tag) return alert('Tag is required');
+      DB.repositories.assets.push({tag, category:$('#aCat').value.trim(), model:$('#aModel').value.trim(), plant:$('#aPlant').value.trim(), location:$('#aLocation').value.trim()});
+      saveDB(DB); $('#aTag').value=''; $('#aCat').value=''; $('#aModel').value=''; $('#aPlant').value=''; $('#aLocation').value=''; renderAssets();
+    };
+
+    function renderSpares(){
+      const tb=$('#tblSpares tbody'); tb.innerHTML='';
+      DB.repositories.spares.sort((a,b)=>(''+a.name).localeCompare(b.name)).forEach((s,i)=>{
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${s.name}</td><td>${s.unit||''}</td><td><button class="icon-btn" data-i="${i}">🗑</button></td>`;
+        tr.querySelector('button').onclick=()=>{ DB.repositories.spares.splice(i,1); saveDB(DB); renderSpares(); refreshDatalists(); };
+        tb.appendChild(tr);
+      });
+      refreshDatalists();
+    }
+    $('#addSpare').onclick=()=>{
+      const name=$('#sName').value.trim(); if(!name) return alert('Spare name required');
+      DB.repositories.spares.push({name, unit:$('#sUnit').value.trim()}); saveDB(DB);
+      $('#sName').value=''; $('#sUnit').value=''; renderSpares();
+    };
+
+    function renderPlantLoc(){
+      const tb=$('#tblPlantLoc tbody'); tb.innerHTML='';
+      DB.repositories.locations.forEach((l,i)=>{
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${l.plant}</td><td>${l.location}</td><td><button class="icon-btn" data-i="${i}">🗑</button></td>`;
+        tr.querySelector('button').onclick=()=>{ DB.repositories.locations.splice(i,1); saveDB(DB); renderPlantLoc(); refreshDatalists(); };
+        tb.appendChild(tr);
+      });
+      refreshDatalists();
+    }
+    $('#addPlantLoc').onclick=()=>{
+      const plant=$('#pPlant').value.trim(); const loc=$('#pLoc').value.trim();
+      if(!plant || !loc) return alert('Both Plant and Location required');
+      if(!DB.repositories.plants.find(p=>p.name===plant)) DB.repositories.plants.push({name:plant});
+      DB.repositories.locations.push({plant, location:loc}); saveDB(DB);
+      $('#pPlant').value=''; $('#pLoc').value=''; renderPlantLoc();
+    };
+
+    function renderPeople(){
+      const tb=$('#tblUsers tbody'); tb.innerHTML='';
+      DB.repositories.people.forEach((u,i)=>{
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${u.name}</td><td>${u.role||''}</td><td>${u.plant||''}</td><td><button class="icon-btn" data-i="${i}">🗑</button></td>`;
+        tr.querySelector('button').onclick=()=>{ DB.repositories.people.splice(i,1); saveDB(DB); renderPeople(); refreshDatalists(); };
+        tb.appendChild(tr);
+      });
+      refreshDatalists();
+    }
+    $('#addUser').onclick=()=>{
+      const name=$('#uName').value.trim(); if(!name) return alert('Name required');
+      DB.repositories.people.push({name, role:$('#uRole').value.trim(), plant:$('#uPlant').value.trim()}); saveDB(DB);
+      $('#uName').value=''; $('#uRole').value=''; $('#uPlant').value=''; renderPeople();
+    };
+
+    function renderIssuedTable(){
+      const tb=$('#tblIssued tbody'); tb.innerHTML='';
+      DB.items.filter(x=>x.status==='issued').sort((a,b)=>new Date(b.issued_date)-new Date(a.issued_date)).forEach(it=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${fmtDate(it.issued_date)}</td><td>${it.tag}</td><td>${it.category||''}</td><td>${it.model||''}</td><td>${it.issued_plant||''}</td><td>${it.issued_location||''}</td><td>${it.issued_by||''}</td><td><button class="icon-btn" data-id="${it.id}">👁</button></td>`;
+        tr.querySelector('button').onclick=()=>showDetail(it.id);
+        tb.appendChild(tr);
+      });
+    }
+
+    $('#btnBackup').onclick=()=>openModal('modal-backup');
+    $('#btnExport').onclick=()=>{ const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='workshop-asset-tracker-backup.json'; a.click(); URL.revokeObjectURL(a.href); };
+    $('#importFile').addEventListener('change', (e)=>{ const f=e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{ try{ DB=JSON.parse(fr.result); saveDB(DB); refreshDatalists(); renderBoard(); alert('Imported successfully'); } catch(err){ alert('Import failed: '+err.message); } }; fr.readAsText(f); });
+    $('#btnReset').onclick=()=>{ if(confirm('Clear ALL data?')){ DB={repositories:{assets:[],spares:[],plants:[],locations:[],people:[]}, items:[]}; saveDB(DB); refreshDatalists(); renderBoard(); } };
+    $('#btnSeed').onclick=()=>{
+      if(!confirm('Load sample master data? (Keeps your existing data)')) return;
+      const M=DB.repositories;
+      const u=(arr,item,key)=>{ if(!arr.find(x=>x[key]===item[key])) arr.push(item); };
+      [{tag:'PUMP-240-001', category:'Pump', model:'KSB 65-200', plant:'Starch Plant', location:'Mill Area'},
+       {tag:'PUMP-240-002', category:'Pump', model:'KSB 80-250', plant:'Starch Plant', location:'Slurry'},
+       {tag:'MOTOR-15KW-01', category:'Motor', model:'ABB 15kW IE3', plant:'Utilities', location:'Pump House'}].forEach(a=>u(M.assets,a,'tag'));
+      [{name:'Mechanical Seal', unit:'set'},{name:'Gasket Kit', unit:'set'},{name:'Bearing 6205', unit:'pcs'}].forEach(s=>u(M.spares,s,'name'));
+      ['Starch Plant','Utilities','Boiler','WWTP','Packing'].forEach(p=>{ if(!M.plants.find(x=>x.name===p)) M.plants.push({name:p}); });
+      [{plant:'Starch Plant', location:'Mill Area'},{plant:'Starch Plant', location:'Slurry'},{plant:'Utilities', location:'Pump House'}].forEach(l=>{ if(!M.locations.find(x=>x.plant===l.plant && x.location===l.location)) M.locations.push(l); });
+      [{name:'Rahul Pandey', role:'Engineer', plant:'Starch Plant'},{name:'Anita Sharma', role:'Technician', plant:'Utilities'},{name:'Vishal Patel', role:'Supervisor', plant:'Boiler'}].forEach(u_=>{ if(!M.people.find(x=>x.name===u_.name)) M.people.push(u_); });
+      saveDB(DB); refreshDatalists(); alert('Sample masters loaded.');
+    };
+
+    $('#seeAllIssued').onclick=()=>{ showView('issued'); };
+
+    refreshDatalists(); renderBoard();
+  </script>
+</body>
+</html>
